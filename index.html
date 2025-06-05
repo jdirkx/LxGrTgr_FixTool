@@ -117,17 +117,59 @@
 		return new RegExp(text, "")
 	}
 
+	function searchTags() {
+	const comp = document.getElementById('comptagfilter').value;
+	const fg = document.getElementById('fgtagfilter').value;
+	
+	let comp_filter = comp.split('\n').map(tag => tag.trim()).filter(tag => tag.length > 0).map(ConvertToRegex);
+	let fg_filter = fg.split('\n').map(tag => tag.trim()).filter(tag => tag.length > 0).map(ConvertToRegex);
+
+	comp_filter.forEach(tagRegex => {
+		let links = document.querySelectorAll(`#text_window a`);
+		links.forEach(link => {
+		let complexity = link.getAttribute("complexity");
+		if (complexity && tagRegex.test(complexity)) {
+			link.classList.remove("not_highlight");
+			link.classList.add("conc_highlight");
+			link.removeAttribute("onclick");
+			link.setAttribute("onclick", "openTag(this);return false;");
+			filtered_tokens.push(link.id);
+		}
+		});
+	});
+
+	fg_filter.forEach(tagRegex => {
+		let links = document.querySelectorAll(`#text_window a`);
+		links.forEach(link => {
+		let fgAttr = link.getAttribute("fine-grained");
+		if (fgAttr) {
+			let fgTags = fgAttr.split(',');
+			if (fgTags.some(tag => tagRegex.test(tag))) {
+			link.classList.remove("not_highlight");
+			link.classList.add("conc_highlight");
+			link.removeAttribute("onclick");
+			link.setAttribute("onclick", "openTag(this);return false;");
+			filtered_tokens.push(link.id);
+			}
+		}
+		});
+	});
+
+	if (filtered_tokens.length > 0) {
+		current_token = filtered_tokens[0];
+		openTag(document.getElementById(current_token));
+	} else {
+		console.log("No matches found.");
+	}
+	}
+
+
 	function readText(filePath) {
 	
 		reader = new FileReader();
 		file_name = filePath.files[0].name;
 		let output = "";
-
-		const rawInput = document.getElementById('fixtags').value;
-		selected_tags = rawInput
-		tagList = rawInput.split('\n').map(tag => tag.trim()).filter(tag => tag.length > 0);
-        let filter = tagList.map(ConvertToRegex);
-		token_nbr = 0;
+		let token_nbr = 0;
 
 		if(filePath.files && filePath.files[0]) {
 			reader.onload = function (e) {
@@ -161,38 +203,15 @@
 						while (fg_tags.length < 8){
 							fg_tags.push("");
 						}
-						//let comp_filter = filter.filter(re => re.includes('+'))
-						//let fg_filter = filter.filter(re => !re.includes('+'))
-						//const matchComplexity = complexity_tag && comp_filter.some(re => re.test(complexity_tag));
-						//const matchFineGrain = fg_tags.some(tag => fg_filter.every(re => re.test(tag)));	
-						const matchComplexity = complexity_tag && filter.some(re => re.test(complexity_tag));	
-						fg_exact = fg_tags.map(ConvertToRegex)
-						const matchFineGrained = fg_exact.some(fg =>
-							filter.some(f => f.source === fg.source && f.flags === fg.flags)
-						);
-						const match = matchComplexity || matchFineGrained;								
-						let tokenText = elements[1];
-						if (match) {
-							filtered_tokens.push(token_nbr);
-							text = text + '<a href="#" id="' + token_nbr + '" content_id="' + content_index + '" complexity="' + complexity_tag + '" new_complexity="' + complexity_tag + '" fine-grained="' + fg_tags.join(',') + '" new_fine-grained="' + fg_tags.join(',') + '" target_tag="1" class="conc_highlight" data-comments="" onclick="openTag(this);return false;">' + tokenText + "</a> ";
-							token_nbr += 1;
-							content_index++;
-						} else { 
-							text = text + '<a href="#" id="' + token_nbr + '" content_id="' + content_index + '" complexity="' + complexity_tag + '" new_complexity="' + complexity_tag + '" fine-grained="' + fg_tags.join(',') + '" new_fine-grained="' + fg_tags.join(',') + '" target_tag="0" class="not_highlight" data-comments="" onclick="return false;">' + tokenText + "</a> ";
-							token_nbr += 1;
-							content_index++;
-						}
+						text = text + '<a href="#" id="' + token_nbr + '" content_id="' + content_index + '" complexity="' + complexity_tag + '" new_complexity="' + complexity_tag + '" fine-grained="' + fg_tags.join(',') + '" new_fine-grained="' + fg_tags.join(',') + '" class="not_highlight" data-comments="" onclick="return false;">' + tokenText + "</a> ";
+						token_nbr += 1;
+						content_index++;
 					}
 
 				}
 				document.getElementById('text_window').innerHTML = text;
 				total_token_count = token_nbr;
 				document.getElementById('filename').value = file_name.replace(/\.txt/g,'') + "_tagchecked.txt";
-				if (filtered_tokens.length > 0) {
-					document.getElementById('button_bar').style.display = 'inline';
-					current_token = filtered_tokens[0];
-					openTag(document.getElementById(current_token));
-				}
 			};
 		reader.readAsText(filePath.files[0]);
 		};
@@ -319,10 +338,19 @@
 		</div>
 	  </div>
 
-	  <div id="info_box" class="info_box">
-		<label for="fixtags"><strong>Tag Filter:</strong></label><br>
-		<textarea id="fixtags" rows="4" cols="50" placeholder="(put one tag per line)"></textarea>
-	  </div>
+		<div id="search_panel" class="info_box">
+		<label for="comptagfilter"><strong>Complexity Tag Filter:</strong></label><br>
+		<textarea id="comptagfilter" rows="4" cols="50" placeholder="(one tag per line, no whitespace)"></textarea>
+		
+		<br><br>
+		
+		<label for="fgtagfilter"><strong>Fine-Grained Tag Filter:</strong></label><br>
+		<textarea id="fgtagfilter" rows="4" cols="50" placeholder="(one tag per line, no whitespace)"></textarea>
+		
+		<br><br>
+
+		<a href="#" class = "button" onclick="searchTags();return false;">Search Tags</button>
+		</div>
   
 	  <div id="bottom_bar" class="bottom_bar">
 
