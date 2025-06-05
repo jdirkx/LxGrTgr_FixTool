@@ -1,0 +1,341 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+  	<meta charset="utf-8">
+    <title>LxGrFixTagTool</title>
+    <link href="style.css" rel="stylesheet">
+    	<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+		<script src="js/FileSaver.js"></script>
+		<script type="text/javascript">
+
+		let current_token = 0;
+		let total_token_count = 0;
+		let filtered_tokens = [];
+		let tagList = [];
+		let content = [];
+		let content_index = 0;
+
+		function includeComments(e) {
+			document.getElementById(current_token).setAttribute("data-comments", e.value);
+		}
+
+		function setNewComplexity() {
+			let new_tag = document.getElementById('field1').value
+			document.getElementById(current_token).setAttribute('new_complexity', new_tag);
+		}
+
+		function setNewFinegrained() {
+			let new_tag = document.getElementById('field2').value + ',' + 
+				document.getElementById('field3').value + ',' + 
+				document.getElementById('field4').value + ',' + 
+				document.getElementById('field5').value + ',' + 
+				document.getElementById('field6').value + ',' + 
+				document.getElementById('field7').value + ',' + 
+				document.getElementById('field8').value + ',' + 
+				document.getElementById('field9').value;
+			document.getElementById(current_token).setAttribute('new_fine-grained', new_tag);
+		}
+
+		function getNewTags(e){
+			new_complexity_tags = e.getAttribute('new_complexity');
+			new_finegrained_tags = e.getAttribute("new_fine-grained").split(',')
+			document.getElementById('field1').value = new_complexity_tags;
+			document.getElementById('field2').value = new_finegrained_tags[0];
+			document.getElementById('field3').value = new_finegrained_tags[1];
+			document.getElementById('field4').value = new_finegrained_tags[2];
+			document.getElementById('field5').value = new_finegrained_tags[3];
+			document.getElementById('field6').value = new_finegrained_tags[4];
+			document.getElementById('field7').value = new_finegrained_tags[5];
+			document.getElementById('field8').value = new_finegrained_tags[6];
+			document.getElementById('field9').value = new_finegrained_tags[7];
+		}
+
+		function next() {
+			document.getElementById(current_token).className = 'conc_highlight';
+			which_token = filtered_tokens.indexOf(Number(current_token));
+			which_token += 1;
+			if (which_token >= filtered_tokens.length) {
+				which_token = filtered_tokens.length - 1;
+			}
+			current_token = filtered_tokens[which_token];
+			openTag(document.getElementById(current_token));
+		}
+
+		function previous() {
+			document.getElementById(current_token).className = 'conc_highlight';
+			which_token = filtered_tokens.indexOf(Number(current_token));
+			which_token -= 1;
+			if (which_token < 0) {
+				which_token = 0;
+			}
+			current_token = filtered_tokens[which_token];
+			document.getElementById('info_box').innerHTML += current_token;
+			openTag(document.getElementById(current_token));
+		}
+
+
+		function openTag(e) {
+			document.getElementById(current_token).className = 'conc_highlight';
+			current_token = e.id;
+			e.className = 'main_highlight';
+			token = e.innerHTML;
+			this_text = '';
+			this_text += ' Tags for the token <b>' + token + '</b> ';
+			this_text += '<br>';
+			let complexity_tag = e.getAttribute("complexity")
+			let finegrained_tags = e.getAttribute("fine-grained").split(',')
+			this_text += '<table>';
+			this_text += '<tr><td><form>Complexity Tag: </td><td>' + complexity_tag + '</td><td><input type="text" id="field1" onchange="setNewComplexity();"></td></tr>';
+			this_text += '<tr><td>Fine-grained Tag Cat. 1: </td><td>' + finegrained_tags[0] + '</td><td><input type="text" id="field2" onchange="setNewFinegrained();"></td></tr>';
+			this_text += '<tr><td>Fine-grained Tag Cat. 2: </td><td>' + finegrained_tags[1] + '</td><td><input type="text" id="field3" onchange="setNewFinegrained();"></td></tr>';
+			this_text += '<tr><td>Fine-grained Tag Cat. 3: </td><td>' + finegrained_tags[2] + '</td><td><input type="text" id="field4" onchange="setNewFinegrained();"></td></tr>';
+			this_text += '<tr><td>Fine-grained Tag Cat. 4: </td><td>' + finegrained_tags[3] + '</td><td><input type="text" id="field5" onchange="setNewFinegrained();"></td></tr>';
+			this_text += '<tr><td>Fine-grained Tag Cat. 5: </td><td>' + finegrained_tags[4] + '</td><td><input type="text" id="field6" onchange="setNewFinegrained();"></td></tr>'
+			this_text += '<tr><td>Fine-grained Tag Cat. 6: </td><td>' + finegrained_tags[5] + '</td><td><input type="text" id="field7" onchange="setNewFinegrained();"></td></tr>'
+			this_text += '<tr><td>Fine-grained Tag Cat. 7: </td><td>' + finegrained_tags[6] + '</td><td><input type="text" id="field8" onchange="setNewFinegrained();"></td></tr>'
+			this_text += '<tr><td>Fine-grained Tag Cat. 8: </td><td>' + finegrained_tags[7] + '</td><td><input type="text" id="field9" onchange="setNewFinegrained();"></td></tr>'
+			this_text += '</table>';
+			this_text += '<hr>Comments:<br><textarea rows="4" cols="30" name="comments" onchange="includeComments(this);">' + e.getAttribute("data-comments")  + '</textarea>';
+			document.getElementById('info_box').innerHTML = this_text;
+			getNewTags(e);
+
+		}
+
+
+		function scrollUp(){
+			e = document.getElementById('text_window');
+			e.scrollTop = e.scrollTop - 50;
+		}
+
+		function scrollDown(){
+			e = document.getElementById('text_window');
+			e.scrollTop = e.scrollTop + 50;
+		}
+
+	function ConvertToRegex(text){
+	    text = text.replace(/\+/g, "\\+").replace(/_/g, "\\_");
+		return new RegExp(text, "")
+	}
+
+	function readText(filePath) {
+	
+		reader = new FileReader();
+		file_name = filePath.files[0].name;
+		let output = "";
+
+		const rawInput = document.getElementById('fixtags').value;
+		selected_tags = rawInput
+		tagList = rawInput.split('\n').map(tag => tag.trim()).filter(tag => tag.length > 0);
+        let filter = tagList.map(ConvertToRegex);
+		token_nbr = 0;
+
+		if(filePath.files && filePath.files[0]) {
+			reader.onload = function (e) {
+				output = e.target.result;
+				content = output.split(/\n+/);
+				let text = '<p>';
+				let lines = output.split(/\n+/);
+				for (let i = 0; i < lines.length; i++) {
+					if (lines[i] === "" || lines[i].startsWith("#")) {
+						content_index++;
+						continue;
+					}
+					let elements = lines[i].split(/\t/);
+					let complexity_tag = "";
+					let fg_tags = [];
+					if (elements.length > 1) {
+						if (elements[3] !== ""){
+							complexity_tag = elements[3];
+							fg_tags = elements.slice(4);
+						} else {
+							fg_tags = elements.slice(3);
+						}
+						elements = elements.filter(el => el.trim() !== '');
+						const uppercaseTagIndex = fg_tags.findIndex(tag => /^[A-Z]/.test(tag));
+						if (uppercaseTagIndex !== -1) {
+							fg_tags.splice(uppercaseTagIndex);
+						}
+						if (fg_tags[0] == ""){
+							fg_tags.shift();
+						}
+						while (fg_tags.length < 8){
+							fg_tags.push("");
+						}
+						//let comp_filter = filter.filter(re => re.includes('+'))
+						//let fg_filter = filter.filter(re => !re.includes('+'))
+						//const matchComplexity = complexity_tag && comp_filter.some(re => re.test(complexity_tag));
+						//const matchFineGrain = fg_tags.some(tag => fg_filter.every(re => re.test(tag)));	
+						const matchComplexity = complexity_tag && filter.some(re => re.test(complexity_tag));	
+						fg_exact = fg_tags.map(ConvertToRegex)
+						const matchFineGrained = fg_exact.some(fg =>
+							filter.some(f => f.source === fg.source && f.flags === fg.flags)
+						);
+						const match = matchComplexity || matchFineGrained;								
+						let tokenText = elements[1];
+						if (match) {
+							filtered_tokens.push(token_nbr);
+							text = text + '<a href="#" id="' + token_nbr + '" content_id="' + content_index + '" complexity="' + complexity_tag + '" new_complexity="' + complexity_tag + '" fine-grained="' + fg_tags.join(',') + '" new_fine-grained="' + fg_tags.join(',') + '" target_tag="1" class="conc_highlight" data-comments="" onclick="openTag(this);return false;">' + tokenText + "</a> ";
+							token_nbr += 1;
+							content_index++;
+						} else { 
+							text = text + '<a href="#" id="' + token_nbr + '" content_id="' + content_index + '" complexity="' + complexity_tag + '" new_complexity="' + complexity_tag + '" fine-grained="' + fg_tags.join(',') + '" new_fine-grained="' + fg_tags.join(',') + '" target_tag="0" class="not_highlight" data-comments="" onclick="return false;">' + tokenText + "</a> ";
+							token_nbr += 1;
+							content_index++;
+						}
+					}
+
+				}
+				document.getElementById('text_window').innerHTML = text;
+				total_token_count = token_nbr;
+				document.getElementById('filename').value = file_name.replace(/\.txt/g,'') + "_tagchecked.txt";
+				if (filtered_tokens.length > 0) {
+					document.getElementById('button_bar').style.display = 'inline';
+					current_token = filtered_tokens[0];
+					openTag(document.getElementById(current_token));
+				}
+			};
+		reader.readAsText(filePath.files[0]);
+		};
+        }
+
+		function exportData() {
+			let updatedContent = [];
+
+			for (let i = 0; i < content.length; i++) {
+				let line = content[i];
+
+				if (/^#sentid = \d+/.test(line) && updatedContent.length > 0) {
+					updatedContent.push("");
+				}
+
+				let token = document.querySelector(`[content_id="${i}"]`);
+				if (!token) {
+					updatedContent.push(line);
+					continue;
+				}
+
+				let old_comp = token.getAttribute('complexity');
+				let new_comp = token.getAttribute('new_complexity');
+				let old_fg = token.getAttribute('fine-grained');
+				let new_fg = token.getAttribute('new_fine-grained');
+
+				let replaced_comp = new_comp !== "" && old_comp !== new_comp;
+				let replaced_fg = new_fg !== "" && old_fg !== new_fg;
+
+				let elements = line.split(/\t/);
+
+				if (replaced_comp) {
+					if (elements.length > 1) {
+						if (elements[3].includes('+')) {
+							elements[3] = new_comp;
+						} else {
+							elements.splice(3, 0, new_comp);
+							old_comp = "No_Prior_Complexity_Tag";
+						}
+					}
+					elements.push(old_comp);
+				}
+
+				if (replaced_fg) {
+					elements.splice(4, 8, ...new_fg.split(","));
+					new_fg_list = new_fg.split(",");
+					old_fg_list = old_fg.split(",");
+					replaced_fgs = old_fg_list.filter(element => !new_fg_list.includes(element));
+					replaced_fgs.forEach(el => {elements.push(el);});
+				}
+
+				if (token.getAttribute("data-comments")) {
+					elements.push(token.getAttribute('data-comments').replace(/\n/g, ' '));
+				}
+
+				updatedContent.push(elements.join("\t"));
+			}
+
+			let blob = new Blob([updatedContent.join("\r\n")], { type: "text/plain;charset=utf-8" });
+			let newfilename = document.getElementById('filename').value;
+			if (newfilename == '') {
+				newfilename = 'output.txt';
+			}
+			saveAs(blob, newfilename);
+		}
+
+
+
+		</script>
+
+  </head>
+  <body>
+	<div id="top_bar" class="top_bar">
+		<table width="100%">
+			<tr>
+			<td><img src="images/wugs.png" width="50"></td>
+			<td>
+				<table>
+					<tr>
+						<td>Open File:</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="file" onchange='readText(this)' />
+						</td>
+					</tr>
+				</table>
+			</td>
+
+			<td><h2> LxGrFixTagTool </h2></td>
+			<td><div id="cit_info">
+
+      </div></td>
+			<td><a href="#" class="button" onclick="location.reload();">Clear Tool</a></td>
+
+			</tr>
+		</table>
+
+	</div>
+
+
+    <div id="text_window" class="text_window">
+		<div class="guidelines">
+		  <h4>Quick Start:</h4>
+		  <ul>
+			<li>
+			  Type one tag per line in the <strong>Tag Filter</strong> box. Example:
+			  <code class="inline-pre">in+advl<br>pl</code>
+			</li>
+			<li>Click <strong>Open File: Choose File</strong> to load your text.</li>
+			<ul>
+				<li>Use a tagged file from the LxGrTgr’s Step 1.</li>
+			</ul>
+			<li>Matching tokens will highlight automatically.</li>
+			<li>Click a token to edit tags or add comments.</li>
+			<ul>
+				<li>Click &lt;&lt; previous token or next token &gt;&gt; to jump between matching tokens.</li>
+				<li>Use the navigation arrows (&uarr;/&darr;) to scroll the text pane in 50 px increments.</li>
+			  </ul>	
+			<li>Enter an output filename and click <strong>Download File</strong>.</li>
+
+			<li>Click the <strong>Clear Tool</strong> button in the top bar to reset and clear all loaded data.</li>
+		  </ul>
+		</div>
+	  </div>
+
+	  <div id="info_box" class="info_box">
+		<label for="fixtags"><strong>Tag Filter:</strong></label><br>
+		<textarea id="fixtags" rows="4" cols="50" placeholder="(put one tag per line)"></textarea>
+	  </div>
+  
+	  <div id="bottom_bar" class="bottom_bar">
+
+		<form><a href="#" class="button" onclick="exportData();return false;">Download File</a> File name: <input type="text" id="filename" size="50">
+
+		</form>
+
+	</div>
+
+	<div id="button_bar" class="button_bar">
+	<a href="#" class="button" onclick="scrollUp();return false;"> &uarr;</a> <a href="#" class="button" onclick="scrollDown();return false;">&darr;</a>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="button" onclick="previous();return false;"> &lt;&lt; previous token </a> <a href="#" class="button" onclick="next();return false;"> next token &gt;&gt; </a>
+
+	</div>
+  </body>
+</html>
